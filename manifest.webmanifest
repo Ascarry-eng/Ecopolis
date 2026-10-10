@@ -1,0 +1,19 @@
+{
+  "name": "Ecopolis — iktisat çalışma şehri",
+  "short_name": "Ecopolis",
+  "description": "İktisat 1. sınıf: Colander mikroekonomi, Mathematics I ve R ile araştırma yöntemleri — etkileşimli grafikler, quizler, kartlar ve DeepSeek Kâhin.",
+  "lang": "tr",
+  "start_url": "./index.html#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F3F5F3",
+  "theme_color": "#24449B",
+  "categories": ["education"],
+  "icons": [
+    { "src": "img/ikon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/ikon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "img/ikon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

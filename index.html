@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ecopolis</title>
+<meta name="description" content="İktisat 1. sınıf için çalışma şehri: Colander mikroekonomi, Mathematics I ve R ile araştırma yöntemleri — etkileşimli grafikler, quizler, kartlar ve DeepSeek destekli Kâhin.">
+<meta name="theme-color" content="#F3F5F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1626" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ecopolis">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="img/ikon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/ikon-180.png">
+<link rel="stylesheet" href="css/fontlar.css">
+<link rel="stylesheet" href="lib/katex/katex.min.css">
+<link rel="stylesheet" href="css/ecopolis.css">
+<script>
+  // Tema ilk boyamadan önce (yanıp sönmesin)
+  try { var t = JSON.parse(localStorage.getItem("ecopolis.tema") || '"oto"'); if (t === "acik" || t === "koyu") document.documentElement.dataset.tema = t; } catch (e) {}
+</script>
+</head>
+<body class="ilk">
+<a class="gorunmez" href="#sahne">İçeriğe geç</a>
+<div id="uygulama">
+  <nav id="ray" aria-label="Ana gezinme">
+    <div class="ray-bas">
+      <a href="#/" aria-label="Ecopolis ana sayfa">
+        <span class="logo-ikon" data-ikon="tapinak"></span>
+        <span class="logo-yazi">ECOPOLIS</span>
+      </a>
+      <div class="meander ince"></div>
+    </div>
+    <ul class="ray-ana">
+      <li><a href="#/" data-rota="akropolis"><span data-ikon="tapinak"></span><span class="etiket-kisa">Akropolis</span><span class="etiket-tam">Akropolis<span class="alt-ad">Bugün ve ilerlemen</span></span></a></li>
+      <li><a href="#/mikro" data-rota="mikro"><span data-ikon="amfora"></span><span class="etiket-kisa">Mikro</span><span class="etiket-tam">Agora<span class="alt-ad">Mikroekonomi</span></span></a></li>
+      <li><a href="#/mate" data-rota="mate"><span data-ikon="pergel"></span><span class="etiket-kisa">Matematik</span><span class="etiket-tam">Akademia<span class="alt-ad">Matematik</span></span></a></li>
+      <li><a href="#/r" data-rota="r"><span data-ikon="parsomen"></span><span class="etiket-kisa">R</span><span class="etiket-tam">Kütüphane<span class="alt-ad">R ve araştırma yöntemleri</span></span></a></li>
+      <li><a href="#/kahin" data-rota="kahin"><span data-ikon="tripod"></span><span class="etiket-kisa">Kâhin</span><span class="etiket-tam">Kâhin<span class="alt-ad">DeepSeek'e sor</span></span></a></li>
+    </ul>
+    <ul class="ray-ikincil">
+      <li><a href="#/kartlar" data-rota="kartlar"><span data-ikon="ostrakon"></span><span>Ostraka<span class="alt-ad">Terim kartları</span></span></a></li>
+      <li><a href="#/olympia" data-rota="olympia"><span data-ikon="defne"></span><span>Olympia<span class="alt-ad">Deneme sınavları</span></span></a></li>
+      <li><a href="#/sozluk" data-rota="sozluk"><span data-ikon="tablet"></span><span>Lexikon<span class="alt-ad">İngilizce–Türkçe sözlük</span></span></a></li>
+      <li><a href="#/klepsydra" data-rota="klepsydra"><span data-ikon="klepsydra"></span><span>Klepsydra<span class="alt-ad">Odak zamanlayıcısı</span></span></a></li>
+      <li><a href="#/ayarlar" data-rota="ayarlar"><span data-ikon="disli"></span><span>Ayarlar<span class="alt-ad">Tema, DeepSeek, yedek</span></span></a></li>
+    </ul>
+    <div class="ray-alt">
+      <span class="r-seri" title="Çalışma serisi"></span>
+      <span class="r-drahmi" title="Drahmi"></span>
+    </div>
+  </nav>
+  <main id="sahne" tabindex="-1"></main>
+</div>
+<button id="klepsydra-hap" class="klepsydra-hap" type="button" hidden></button>
+<div id="bildirim" role="status" aria-live="polite"></div>
+
+<script src="lib/marked.js"></script>
+<script src="lib/katex/katex.min.js"></script>
+<script src="js/cekirdek.js"></script>
+<script src="js/ikonlar.js"></script>
+<script src="icerik/dizin.js"></script>
+<script src="js/ilerleme.js"></script>
+<script src="js/grafik.js"></script>
+<script src="js/gorsel_mikro.js"></script>
+<script src="js/gorsel_mikro2.js"></script>
+<script src="js/gorsel_mate.js"></script>
+<script src="js/gorsel_r.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/kahin.js"></script>
+<script src="js/r.js"></script>
+<script src="js/sayfalar.js"></script>
+<script src="js/araclar.js"></script>
+<script src="js/uygulama.js"></script>
+</body>
+</html>

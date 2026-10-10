@@ -1,0 +1,6 @@
+# Kütüphanelerin kaynağı (yeniden üretilebilir: cd _npm && npm install && node kutuphane_kopyala.js)
+_npm/node_modules/
+# Test çıktıları
+test/ekran/
+test/r_cikti/
+*.log
