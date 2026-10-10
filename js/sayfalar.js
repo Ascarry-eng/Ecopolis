@@ -217,7 +217,6 @@
   sayfa("r", dersSayfasi("r"));
 
   // ================================================================ BÖLÜM SAYFASI
-  let gozlemci = null;
 
   async function bolumGoster(sahne, id, sekme) {
     const yer = ECO.dersBul(id);
@@ -264,7 +263,6 @@
     function sekmeGoster(k) {
       $$("button", sekmeCubuk).forEach((b, i) => b.setAttribute("aria-selected", String(sekmeler[i][0] === k)));
       govde.innerHTML = "";
-      if (gozlemci) { gozlemci.disconnect(); gozlemci = null; }
       if (k === "ders") dersSekmesi(govde, id, ic, yer);
       else if (k === "terimler") terimSekmesi(govde, id, ic);
       else if (k === "quiz") quizSekmesi(govde, id, ic, yer);
@@ -280,40 +278,51 @@
     }
     const n = ic.bolumler.length;
     const d0 = P.bolum(id);
+    // Okundu işareti elle: sayfayı yalnız kaydırıp geçmek okumak sayılmaz. Tekrar dokununca işaret kalkar.
+    const tiklar = [];
+    const tikCiz = (t, evet) => {
+      t.setAttribute("aria-pressed", String(evet));
+      t.replaceChildren(el("span", { class: "isaret-kutu", "aria-hidden": "true" }, evet ? ikon("tik") : null), evet ? "Okundu" : "Okudum");
+      t.title = evet ? "İşareti kaldırmak için tekrar dokun" : "Bu kısmı okuduysan işaretle";
+    };
     ic.bolumler.forEach((b, i) => {
       const kes = el("section", { class: "kesim", id: `k${i}` });
       const m = el("div", { class: "metin", html: isle(`## ${b.baslik}\n\n${b.md}`, { guvenli: true }) });
       kes.append(m);
-      const son = el("div", { class: "kesim-son", "data-i": String(i) });
-      if (d0.okunan.includes(i) || d0.tamam) son.append(el("span", { class: "okundu-isaret" }, ikon("tik"), "okundu"));
-      kes.append(son);
+      const tik = el("button", { class: "okudum", type: "button" });
+      tikCiz(tik, d0.tamam || d0.okunan.includes(i));
+      tik.addEventListener("click", () => {
+        const evet = tik.getAttribute("aria-pressed") !== "true";
+        const s = P.okundu(id, i, n, evet);
+        tikCiz(tik, evet);
+        if (s.tamamOldu) bildir(s.tamamOdul ? "Bütün kısımlar okundu: tambur yerine oturdu. +10 drahmi" : "Bütün kısımlar okundu: tambur yerinde");
+        sonuCiz();
+      });
+      tiklar.push(tik);
+      kes.append(el("div", { class: "kesim-son" }, tik));
       kap.append(kes);
       canlandir(m, { bolum: id });
     });
-    // Okuma takibi: kesimin sonu görünür olunca okundu say
-    if ("IntersectionObserver" in window) {
-      gozlemci = new IntersectionObserver((girdiler) => {
-        for (const g of girdiler) if (g.isIntersecting) {
-          const i = +g.target.dataset.i;
-          if (P.okundu(id, i, n)) g.target.append(el("span", { class: "okundu-isaret" }, ikon("tik"), "okundu"));
-          gozlemci.unobserve(g.target);
-        }
-      }, { rootMargin: "0px 0px -15% 0px" });
-      $$(".kesim-son", kap).forEach((x) => gozlemci.observe(x));
-    }
     // Özet + bitir
-    const sonu = el("div", { class: "bolum-sonu" });
     if (ic.ozet && ic.ozet.length) {
       kap.append(el("section", { class: "kesim" }, el("div", { class: "metin", html: isle("## Bölüm özeti\n\n" + ic.ozet.map((o) => "- " + o).join("\n"), { guvenli: true }) })));
     }
-    const tamam = P.durum(id).tamam;
-    sonu.append(el("p", { text: tamam ? "Bu tambur yerinde. İstersen quizle altınla." : "Bitirdiysen tamburu yerine koy, sonra quizle pekiştir." }));
-    const tuslar = el("div", { class: "tus-satir", style: "justify-content:center;margin:0" });
-    if (!tamam) tuslar.append(el("button", { class: "tus", type: "button", onclick: (e) => { P.tamamla(id); bildir("Tambur yerine oturdu. +10 drahmi"); e.target.closest(".bolum-sonu").querySelector("p").textContent = "Bu tambur yerinde. İstersen quizle altınla."; e.target.remove(); } }, ikon("tik"), "Bölümü bitirdim"));
-    tuslar.append(el("a", { class: "tus ikincil", href: `#/${yer.ders.id}/${id}/quiz` }, "Quiz'e geç"));
+    const sonu = el("div", { class: "bolum-sonu" });
     const sonraki = sonrakiBolum(id);
-    if (sonraki) tuslar.append(el("a", { class: "tus sessiz", href: `#/${yer.ders.id}/${sonraki.id}` }, `Sonraki: ${sonraki.tr}`));
-    sonu.append(tuslar);
+    function sonuCiz() {
+      const tamam = P.durum(id).tamam;
+      const tuslar = el("div", { class: "tus-satir", style: "justify-content:center;margin:0" });
+      if (!tamam) tuslar.append(el("button", { class: "tus", type: "button", onclick: () => {
+        const odul = P.tamamla(id, true, n);
+        tiklar.forEach((t) => tikCiz(t, true));
+        bildir(odul ? "Tambur yerine oturdu. +10 drahmi" : "Tambur yerine oturdu");
+        sonuCiz();
+      } }, ikon("tik"), "Bölümü bitirdim"));
+      tuslar.append(el("a", { class: "tus ikincil", href: `#/${yer.ders.id}/${id}/quiz` }, "Quiz'e geç"));
+      if (sonraki) tuslar.append(el("a", { class: "tus sessiz", href: `#/${yer.ders.id}/${sonraki.id}` }, `Sonraki: ${sonraki.tr}`));
+      sonu.replaceChildren(el("p", { text: tamam ? "Bu tambur yerinde. İstersen quizle altınla." : "Bitirdiysen tamburu yerine koy (bütün kısımları okundu sayar), sonra quizle pekiştir." }), tuslar);
+    }
+    sonuCiz();
     kap.append(sonu);
   }
 
@@ -401,22 +410,46 @@
       temaBlok.append(el("div", { style: "height:10px" }));
       s.append(temaBlok);
 
-      // DeepSeek
+      // Kâhin: bağlantı (Puter hesabı ya da kendi DeepSeek anahtarı) + model ayarları
+      const K = ECO.Kahin;
       const ds = el("section", { class: "ayar-blok" }, el("h2", { text: "Kâhin (DeepSeek)" }));
       const anahtar = el("input", { class: "giris", id: "anahtar", type: "password", autocomplete: "off", spellcheck: "false", placeholder: "sk-…", value: depo.al("anahtar", "") });
       const goster = el("button", { class: "kucuk-tus", type: "button", text: "Göster", onclick: () => { anahtar.type = anahtar.type === "password" ? "text" : "password"; goster.textContent = anahtar.type === "password" ? "Göster" : "Gizle"; } });
-      ds.append(el("div", { class: "alan-grup" },
+      const anahtarGrup = el("div", { class: "alan-grup" },
         el("label", { for: "anahtar", text: "API anahtarı" }),
         el("div", { style: "display:flex;gap:8px" }, anahtar, goster),
-        el("p", { class: "yardim", html: 'Anahtarı <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> → API keys bölümünden al. Yalnız bu cihazda saklanır ve yalnız api.deepseek.com\'a gönderilir; yedek dosyasına girmez.' })));
+        el("p", { class: "yardim", html: 'Anahtarı <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> → API keys bölümünden al. Yalnız bu cihazda saklanır ve yalnız api.deepseek.com\'a gönderilir; yedek dosyasına girmez.' }));
       anahtar.addEventListener("change", () => { depo.koy("anahtar", anahtar.value.trim()); bildir(anahtar.value.trim() ? "Anahtar kaydedildi" : "Anahtar silindi"); });
+      const bagKap = el("div", { style: "margin-top:10px" });
+      function bagCiz() {
+        if (K.bag() === "anahtar") { bagKap.replaceChildren(anahtarGrup); return; }
+        if (depo.al("kahinBag", "") === "puter") K.puterHazirla();
+        const girdi = K.hazir();
+        const durum = el("p", { class: "yardim", style: "margin:0", text: girdi ? "Puter'a girilmiş." : "Henüz Puter'a girilmemiş." });
+        const tus = el("button", { class: girdi ? "kucuk-tus" : "tus", type: "button", text: girdi ? "Çıkış yap" : "Puter ile giriş yap", onclick: async () => {
+          tus.disabled = true;
+          try {
+            if (girdi) { await K.puterCikis(); bildir("Puter'dan çıkıldı"); }
+            else { depo.koy("kahinBag", "puter"); if (await K.puterGiris()) bildir("Puter'a girildi. Kâhin hazır."); }
+            bagCiz(); return;
+          } catch (e) { bildir(e.message, 5000); }
+          tus.disabled = false;
+        } });
+        bagKap.replaceChildren(el("div", { class: "alan-grup" }, durum, el("div", { class: "tus-satir", style: "margin:8px 0" }, tus),
+          el("p", { class: "yardim", html: 'Anahtar gerekmez: <a href="https://puter.com" target="_blank" rel="noopener">Puter</a>\'a Google, Microsoft, Apple ya da e-postayla girersin; aynı DeepSeek modeli Puter üzerinden çalışır. Her hesabın aylık ücretsiz bir kotası var, dolarsa ay başında yenilenir; harcananı <a href="https://puter.com/dashboard#usage" target="_blank" rel="noopener">puter.com/dashboard</a>\'da görürsün. Bu yolda Puter\'ın kodu (js.puter.com) uygulamanın içinde çalışır ve mesajların Puter üzerinden DeepSeek\'e gider. "Düşünme" ayarı yalnız kendi anahtarınla geçerli.' })));
+        if (girdi) K.puterKim().then((ad) => { if (ad) durum.textContent = "Puter'a girilmiş: " + ad; }, () => {});
+      }
+      ECO.Gorsel.secici(ds, { etiket: "Bağlantı", secenekler: [["puter", "Puter hesabı (anahtarsız)"], ["anahtar", "Kendi DeepSeek anahtarım"]], deger: K.bag(), degisti: (v) => { depo.koy("kahinBag", v); bagCiz(); } });
+      ds.append(bagKap);
+      bagCiz();
+      ds.append(el("div", { style: "height:14px" }));
       ECO.Gorsel.secici(ds, { etiket: "Model", secenekler: [["deepseek-flash", "Hızlı (fotoğraf okur)"], ["deepseek-v4-pro", "Derin (yalnız metin)"]], deger: depo.al("model", "deepseek-flash"), degisti: (v) => depo.koy("model", v) });
       ds.append(el("div", { style: "height:10px" }));
       ECO.Gorsel.secici(ds, { etiket: "Düşünme", secenekler: [["low", "Az"], ["high", "Normal"], ["max", "En çok"]], deger: depo.al("efor", "high"), degisti: (v) => depo.koy("efor", v) });
       ds.append(el("div", { style: "height:10px" }));
       ECO.Gorsel.secici(ds, { etiket: "Cevap dili", secenekler: [["tr", "Türkçe + İngilizce terim"], ["en", "İngilizce"]], deger: depo.al("cevapDili", "tr"), degisti: (v) => depo.koy("cevapDili", v) });
       ds.append(el("div", { class: "tus-satir" }, el("button", { class: "tus ikincil", type: "button", onclick: async (e) => {
-        depo.koy("anahtar", anahtar.value.trim());
+        if (K.bag() === "anahtar") depo.koy("anahtar", anahtar.value.trim());
         e.target.disabled = true; e.target.textContent = "Deneniyor…";
         try { const m = await ECO.Kahin.dene(); bildir("Bağlantı tamam: " + m); }
         catch (err) { bildir("Olmadı: " + err.message, 5000); }

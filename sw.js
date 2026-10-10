@@ -1,7 +1,7 @@
 // sw.js — Ecopolis service worker. Uygulama kabuğu ve içerikler kurulumda önbelleğe alınır (çevrimdışı çalışır);
 // webR (R'ın kendisi ve paketleri) ilk kullanımda ayrı bir önbelleğe alınır, sonra internetsiz de çalışır.
 // DeepSeek istekleri asla önbelleğe alınmaz. Liste ve sürüm araclar/sw_uret.js ile üretilir — elle düzenleme.
-const SURUM = "a16296780da1";
+const SURUM = "30648efe6048";
 const ON = "ecopolis-";
 const KABUK = ON + "kabuk-" + SURUM;
 const WEBR = ON + "webr-v1";

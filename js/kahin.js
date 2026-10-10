@@ -1,10 +1,14 @@
-// kahin.js — Delphi Kâhini: DeepSeek sohbeti. Tarayıcıdan doğrudan api.deepseek.com'a (CORS açık), akışlı.
-// Anahtar yalnız bu cihazın localStorage'ında. Cevaptaki ```grafik JSON'u çizilir, ```quiz JSON'u etkileşimli
-// quize döner, ```r kodu kullanıcı isterse tarayıcıdaki R'da çalışır.
+// kahin.js — Delphi Kâhini: DeepSeek sohbeti, akışlı. İki bağlantı yolu:
+//   anahtar: tarayıcıdan doğrudan api.deepseek.com'a (CORS açık); anahtar yalnız bu cihazın localStorage'ında.
+//   puter:   anahtarsız; kullanıcı Puter hesabıyla girer, aynı DeepSeek modeli Puter üzerinden çalışır.
+//            Puter'ın SDK'sı yalnız bu yol seçiliyken yüklenir; anahtar yolunda sayfaya hiç girmez.
+// Cevaptaki ```grafik JSON'u çizilir, ```quiz JSON'u etkileşimli quize döner, ```r kodu kullanıcı isterse
+// tarayıcıdaki R'da çalışır.
 (function () {
   "use strict";
   const { el, depo, isle, canlandir, ikon, bildir, sayfa, git, Ifade } = ECO;
   const ADRES = "https://api.deepseek.com/chat/completions";
+  const PUTER_SDK = "https://js.puter.com/v2/";
 
   const dersListesi = () => Object.values(ECO.dersler).map((d) => `${d.ders} (${d.ad}): ` + ECO.tumBolumler(d.id).map((b) => `${b.no}. ${b.ad}`).join("; ")).join("\n");
 
@@ -62,6 +66,48 @@ ${GRAFIK_SEMA}
   const kaydet = () => depo.koy("kahin.sohbet", mesajlar.slice(-40).map(({ resim, akiyor, ...m }) => ({ ...m, resimVardi: m.resimVardi || !!resim })));
   const model = () => depo.al("model", "deepseek-flash");
 
+  // ---------------------------------------------------------------- bağlantı
+  const bag = () => depo.al("kahinBag", depo.al("anahtar", "") ? "anahtar" : "puter");
+  let puterSoz = null;
+  function puterYukle() {
+    if (window.puter && window.puter.ai) return Promise.resolve(window.puter);
+    if (!puterSoz) puterSoz = new Promise((ok, red) => {
+      const s = el("script", { src: PUTER_SDK, async: true });
+      s.onload = () => { if (window.puter && window.puter.ai) { window.puter.quiet = true; ok(window.puter); } else red(new Error("Puter yüklenemedi")); };
+      s.onerror = () => { puterSoz = null; s.remove(); red(new Error("Puter'a ulaşılamadı. İnternetini kontrol et.")); };
+      document.head.append(s);
+    });
+    return puterSoz;
+  }
+  // SDK yüklenmeden de "daha önce girmiş mi" sorusunu cevaplar (Puter oturum anahtarını kendi adıyla saklar)
+  const puterIzi = () => { try { return !!(localStorage.getItem("puter.auth.token.v2") || localStorage.getItem("puter.auth.token")); } catch (e) { return false; } };
+  const puterGirisli = () => (window.puter && window.puter.auth ? window.puter.auth.isSignedIn() : puterIzi());
+  const hazir = () => (bag() === "puter" ? puterGirisli() : !!depo.al("anahtar", ""));
+
+  function puterHatasi(e) {
+    if (e instanceof Error && !e.code) return e;
+    const o = typeof e === "string" ? { message: e } : e || {};
+    const kod = String(o.code || (o.error && (o.error.code || o.error)) || o.status || "");
+    const msg = String(o.message || o.msg || (o.error && o.error.message) || "");
+    const s = (kod + " " + msg).toLowerCase();
+    if (/insufficient_funds|usage_limited|402/.test(s)) return new Error("Puter'daki aylık ücretsiz kotan doldu. Ay başında yenilenir; beklemek istemezsen Ayarlar'dan kendi DeepSeek anahtarına geçebilirsin.");
+    if (/too_many_requests|429/.test(s)) return new Error("Çok hızlı soruldu; biraz bekleyip yeniden dene.");
+    if (/network_error|failed to fetch/.test(s)) return new Error("Bağlantı koptu. İnternetini kontrol et.");
+    if (/unauthori|auth_required|token_auth|401/.test(s)) return new Error("Puter oturumu düşmüş. Ayarlar'dan yeniden giriş yap.");
+    if (/popup_blocked/.test(s)) return new Error("Tarayıcı giriş penceresini engelledi. Bir kez daha dokun.");
+    if (/auth_window_closed/.test(s)) return new Error("Giriş penceresi kapatıldı.");
+    return new Error("Puter: " + (msg || kod || "bilinmeyen hata"));
+  }
+  // Tıklamanın içinden çağrılmalı: giriş bir açılır pencere açar. SDK zaten yüklüyse pencere aynı dokunuşta açılır;
+  // ilk yüklemede tarayıcı engellerse ikinci dokunuş açar.
+  function puterGiris() {
+    const gir = (p) => (p.auth.isSignedIn() ? true : p.auth.signIn().then(() => p.auth.isSignedIn(), (e) => { throw puterHatasi(e); }));
+    return window.puter && window.puter.auth ? Promise.resolve(gir(window.puter)) : puterYukle().then(gir);
+  }
+  async function puterCikis() { const p = await puterYukle(); await p.auth.signOut(); }
+  async function puterKim() { const p = await puterYukle(); if (!p.auth.isSignedIn()) return null; const u = await p.auth.getUser(); return u ? u.username : null; }
+  const tokenSay = (u) => (u ? u.total_tokens || (u.prompt_tokens || u.input_tokens || 0) + (u.completion_tokens || u.output_tokens || 0) : 0);
+
   // ---------------------------------------------------------------- yapay zekâ grafiği
   const RENK = { mavi: "r-1", kirmizi: "r-2", altin: "r-3", yesil: "r-4", gri: "r-5" };
   const ALAN_RENK = { mavi: "a-tuketici", kirmizi: "a-uretici", altin: "a-olu", yesil: "a-vergi", gri: "a-notr" };
@@ -101,10 +147,17 @@ ${GRAFIK_SEMA}
     const k = el("div", { class: "kahin-bos" });
     const tripod = ikon("tripod", "tripod");
     k.append(tripod);
-    if (!depo.al("anahtar", "")) {
-      k.append(el("h2", { text: "Önce DeepSeek anahtarını gir" }),
-        el("p", { text: "Kâhin, DeepSeek'in yapay zekâsıyla konuşur. Anahtarı platform.deepseek.com → API keys bölümünden alırsın; bir kez girmen yeter, yalnız bu cihazda saklanır." }),
-        el("a", { class: "tus", href: "#/ayarlar" }, ikon("disli"), "Anahtarı gir"));
+    if (!hazir()) {
+      const giris = el("button", { class: "tus", type: "button", onclick: async () => {
+        depo.koy("kahinBag", "puter");
+        giris.disabled = true;
+        try { if (await puterGiris()) { bildir("Puter'a girildi. Kâhin hazır."); hepsiniCiz(); return; } }
+        catch (e) { bildir(e.message, 5000); }
+        giris.disabled = false;
+      } }, "Puter ile giriş yap");
+      k.append(el("h2", { text: "Kâhin'i bağla" }),
+        el("p", { text: "Kâhin, DeepSeek'in yapay zekâsıyla konuşur. Anahtarsız yol: Puter hesabıyla gir (Google, Microsoft, Apple ya da e-posta); her hesabın aylık ücretsiz bir kotası var. Kendi DeepSeek anahtarın varsa onu Ayarlar'dan girebilirsin." }),
+        el("div", { class: "tus-satir", style: "justify-content:center" }, giris, el("a", { class: "tus ikincil", href: "#/ayarlar" }, ikon("disli"), "Anahtarım var")));
       return k;
     }
     k.append(el("h2", { text: "Takıldığın yeri sor" }),
@@ -190,6 +243,38 @@ ${GRAFIK_SEMA}
     return out;
   }
 
+  // Puter yolu: aynı gövdeyi Puter'a verir, parçaları DeepSeek akışıyla aynı biçimde geri çağırır
+  async function puterAkis(govde, sinyal, parca) {
+    const p = await puterYukle();
+    if (!p.auth.isSignedIn()) throw new Error("Puter'a giriş yapılmamış. Kâhin sayfasından ya da Ayarlar'dan giriş yap.");
+    const secenek = { model: "deepseek/" + govde.model, provider: "deepseek", stream: !!govde.stream, max_tokens: govde.max_tokens };
+    let akis;
+    try { akis = await p.ai.chat(govde.messages, false, secenek); } catch (e) { throw puterHatasi(e); }
+    if (!govde.stream) return akis;
+    const it = akis[Symbol.asyncIterator]();
+    let durdur;
+    const dur = new Promise((_, red) => { durdur = () => red(new DOMException("Durduruldu", "AbortError")); });
+    dur.catch(() => {});
+    if (sinyal.aborted) durdur(); else sinyal.addEventListener("abort", durdur, { once: true });
+    try {
+      for (;;) {
+        const { value: c, done } = await Promise.race([it.next(), dur]);
+        if (done) break;
+        if (!c) continue;
+        if (c.type === "error") throw puterHatasi(c);
+        if (c.type === "reasoning" && c.reasoning) parca({ dusunce: c.reasoning });
+        else if (c.type === "usage") parca({ kullanim: c.usage || c });
+        else if ((!c.type || c.type === "text") && c.text) parca({ metin: c.text });
+      }
+    } catch (e) {
+      if (e.name === "AbortError") throw e;
+      throw puterHatasi(e);
+    } finally {
+      sinyal.removeEventListener("abort", durdur);
+      if (it.return) Promise.resolve().then(() => it.return()).catch(() => {});
+    }
+  }
+
   async function istek(govde, sinyal) {
     const anahtar = depo.al("anahtar", "");
     if (!anahtar) throw new Error("DeepSeek anahtarı yok. Ayarlar'dan gir.");
@@ -213,7 +298,7 @@ ${GRAFIK_SEMA}
     if (iptal) { iptal.abort(); return; }
     const metin = ui.alan.value.trim();
     if (!metin && !ek) return;
-    if (!depo.al("anahtar", "")) { bildir("Önce Ayarlar'dan DeepSeek anahtarını gir"); return; }
+    if (!hazir()) { bildir(bag() === "puter" ? "Önce Puter'a giriş yap" : "Önce Ayarlar'dan DeepSeek anahtarını gir"); return; }
     mesajlar.push({ rol: "user", metin, resim: ek || undefined });
     ui.alan.value = ""; boyutla();
     ekTemizle();
@@ -227,7 +312,15 @@ ${GRAFIK_SEMA}
     iptal = new AbortController();
     tusDurumu();
     let kullanim = null;
+    const parca = (d) => {
+      if (d.kullanim) kullanim = d.kullanim;
+      if (d.dusunce) cevap.dusunce += d.dusunce;
+      if (d.metin) cevap.metin += d.metin;
+      if (d.dusunce || d.metin) sonuGuncelle();
+    };
     try {
+      if (bag() === "puter") await puterAkis(govde, iptal.signal, parca);
+      else {
       const r = await istek(govde, iptal.signal);
       const okuyucu = r.body.getReader();
       const coz = new TextDecoder();
@@ -244,20 +337,18 @@ ${GRAFIK_SEMA}
           const v = t.slice(5).trim();
           if (v === "[DONE]") continue;
           let j; try { j = JSON.parse(v); } catch (e) { continue; }
-          if (j.usage) kullanim = j.usage;
+          if (j.usage) parca({ kullanim: j.usage });
           const dl = j.choices && j.choices[0] && j.choices[0].delta;
-          if (!dl) continue;
-          if (dl.reasoning_content) cevap.dusunce += dl.reasoning_content;
-          if (dl.content) cevap.metin += dl.content;
-          sonuGuncelle();
+          if (dl) parca({ dusunce: dl.reasoning_content, metin: dl.content });
         }
+      }
       }
     } catch (e) {
       if (e.name === "AbortError") cevap.bilgi = "Durduruldu.";
       else cevap.hata = e.message;
     }
     cevap.akiyor = false;
-    if (!cevap.hata && !cevap.bilgi) cevap.bilgi = `${not}${secilen === "deepseek-flash" ? "Hızlı" : "Derin"} model${kullanim ? ` · ${kullanim.total_tokens.toLocaleString("tr-TR")} token` : ""}`;
+    if (!cevap.hata && !cevap.bilgi) cevap.bilgi = `${not}${secilen === "deepseek-flash" ? "Hızlı" : "Derin"} model${bag() === "puter" ? " (Puter)" : ""}${tokenSay(kullanim) ? ` · ${tokenSay(kullanim).toLocaleString("tr-TR")} token` : ""}`;
     iptal = null;
     kaydet();
     sonuGuncelle(true);
@@ -337,6 +428,8 @@ ${GRAFIK_SEMA}
       gonderTus.addEventListener("click", gonder);
 
       sahne.append(el("div", { class: "kahin" }, bas, el("div", { class: "sohbet" }, sohbet), yazma));
+      // Puter yolundaysa SDK'yı arka planda hazırla: giriş penceresi aynı dokunuşta açılabilsin, eski oturum doğrulansın
+      if (depo.al("kahinBag", "") === "puter") puterYukle().then(() => { if (ui && !mesajlar.length) hepsiniCiz(); }, () => {});
       modCiz();
       hepsiniCiz();
       tusDurumu();
@@ -344,7 +437,7 @@ ${GRAFIK_SEMA}
         const b = bekleyen; bekleyen = null;
         if (b.mod) { mod = b.mod; modCiz(); }
         alan.value = b.metin || ""; boyutla();
-        if (b.gonder && depo.al("anahtar", "")) gonder();
+        if (b.gonder && hazir()) gonder();
         else alan.focus();
       }
       window.scrollTo(0, document.body.scrollHeight);
@@ -356,10 +449,14 @@ ${GRAFIK_SEMA}
     baglamAyarla(b) { baglam = b; baglamAcik = true; },
     sor(o) { bekleyen = o; git("kahin"); },
     async dene() {
-      const r = await istek({ model: depo.al("model", "deepseek-flash"), messages: [{ role: "user", content: "Sadece 'tamam' yaz." }], max_tokens: 20, stream: false, reasoning_effort: "low" });
+      const govde = { model: depo.al("model", "deepseek-flash"), messages: [{ role: "user", content: "Sadece 'tamam' yaz." }], max_tokens: 20, stream: false };
+      if (bag() === "puter") { await puterAkis(govde, new AbortController().signal); return "DeepSeek (Puter)"; }
+      const r = await istek({ ...govde, reasoning_effort: "low" });
       const j = await r.json();
       return j.model || "DeepSeek";
     },
+    bag, hazir, puterGiris, puterCikis, puterKim,
+    puterHazirla: () => puterYukle().catch(() => {}),
     sistemMetni,
   };
 })();

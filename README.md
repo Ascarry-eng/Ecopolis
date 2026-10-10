@@ -41,10 +41,16 @@ Anlatım Türkçe; terimler ve quiz soruları İngilizce, açıklamaları Türk�
 ## Kullanım
 
 1. Bağlantıyı aç. Telefonda tarayıcı menüsünden **Ana ekrana ekle** dersen uygulama gibi açılır.
-2. Kâhin için **Ayarlar → DeepSeek** bölümüne kendi API anahtarını gir
-   ([platform.deepseek.com](https://platform.deepseek.com) → API keys). Anahtar **yalnız o cihazın tarayıcısında** saklanır;
-   hiçbir sunucuya, yedek dosyasına ya da bu depoya gitmez. Kullanım ücreti DeepSeek hesabından düşer.
-3. İlerleme de cihazda tutulur. Telefon ↔ bilgisayar arasında taşımak için **Ayarlar → Yedeği indir / Yedeği yükle**.
+2. Kâhin'i bağlamanın iki yolu var (**Ayarlar → Kâhin**):
+   - **Anahtarsız:** Kâhin sayfasında **Puter ile giriş yap** de; [Puter](https://puter.com)'a Google, Microsoft, Apple ya da
+     e-postayla girersin, aynı DeepSeek modeli Puter üzerinden çalışır. Her hesabın aylık ücretsiz bir kotası var.
+     Bu yolda Puter'ın kodu (js.puter.com) sayfada çalışır ve mesajlar Puter üzerinden DeepSeek'e gider; yol seçilmedikçe
+     Puter'ın kodu hiç yüklenmez.
+   - **Kendi anahtarın:** [platform.deepseek.com](https://platform.deepseek.com) → API keys. Anahtar **yalnız o cihazın
+     tarayıcısında** saklanır; yalnız api.deepseek.com'a gider, yedek dosyasına ya da bu depoya girmez. Ücret DeepSeek hesabından düşer.
+3. Okuduğun kısmı sonundaki **Okudum** işaretiyle işaretle; sayfayı kaydırıp geçmek okundu saymaz. Bütün kısımlar
+   işaretlenince bölüm tamamlanır.
+4. İlerleme cihazda tutulur. Telefon ↔ bilgisayar arasında taşımak için **Ayarlar → Yedeği indir / Yedeği yükle**.
 
 R ilk kullanımda birkaç MB indirir (birkaç saniye); sonra önbellekte kalır.
 
@@ -85,4 +91,4 @@ kullanıcıların uygulaması kendiliğinden güncellenir.
 
 Kod ve içerik: [MIT](LICENSE). Üçüncü taraf: KaTeX (MIT), marked (MIT), Cinzel / Alegreya / Alegreya Sans /
 JetBrains Mono yazı tipleri (SIL Open Font License) — metinleri `lib/lisanslar/` içinde. webR çalışırken
-r-wasm.org'dan yüklenir.
+r-wasm.org'dan, Puter SDK'sı (yalnız Puter yolu seçilirse) js.puter.com'dan yüklenir.

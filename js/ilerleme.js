@@ -48,16 +48,36 @@
   const P = {
     dinleyiciler: [],
     bolum,
-    okundu(id, i, toplam) {
-      let yeni = false;
-      bolumGuncelle(id, (b) => { b.toplam = toplam; if (!b.okunan.includes(i)) { b.okunan.push(i); yeni = true; } });
-      if (yeni) { etkinlik("okuma"); drahmi(1); }
-      return yeni;
+    // Okundu işareti elle konur/kaldırılır. Ödül (drahmi, günlük okuma) her kesim ve her bölüm için bir kez:
+    // b.odul ödülü verilmiş kesimler, b.tamamOdul bölüm ödülü. Bütün kesimler işaretliyse bölüm tamamdır.
+    okundu(id, i, toplam, evet = true) {
+      let ilk = false, tamamOdul = false, onceTamam = false, b;
+      b = bolumGuncelle(id, (b) => {
+        b.toplam = toplam;
+        onceTamam = b.tamam;
+        if (b.tamam) b.okunan = Array.from({ length: toplam }, (_, k) => k);
+        if (!b.odul) b.odul = b.okunan.slice();   // işaret elle olmadan önceki kayıtlar
+        if (b.tamamOdul == null) b.tamamOdul = b.tamam;
+        b.okunan = evet ? [...new Set([...b.okunan, i])] : b.okunan.filter((k) => k !== i);
+        if (evet && !b.odul.includes(i)) { b.odul.push(i); ilk = true; }
+        b.tamam = b.okunan.length >= toplam;
+        if (b.tamam && !b.tamamOdul) { b.tamamOdul = true; tamamOdul = true; }
+      });
+      if (ilk) { etkinlik("okuma"); drahmi(1); }
+      if (tamamOdul) drahmi(10);
+      return { tamam: b.tamam, tamamOldu: b.tamam && !onceTamam, tamamOdul };
     },
-    tamamla(id, evet = true) {
-      const once = bolum(id).tamam;
-      bolumGuncelle(id, (b) => { b.tamam = evet; if (evet && b.toplam) b.okunan = Array.from({ length: b.toplam }, (_, i) => i); });
-      if (evet && !once) drahmi(10);
+    tamamla(id, evet = true, toplam = 0) {
+      let odul = false;
+      bolumGuncelle(id, (b) => {
+        if (toplam) b.toplam = toplam;
+        if (b.tamamOdul == null) b.tamamOdul = b.tamam;
+        b.tamam = evet;
+        if (evet && b.toplam) b.okunan = Array.from({ length: b.toplam }, (_, i) => i);
+        if (evet && !b.tamamOdul) { b.tamamOdul = true; odul = true; }
+      });
+      if (odul) drahmi(10);
+      return odul;
     },
     quizKaydet(id, dogru, toplam, yanlislar = [], dogrular = []) {
       const oran = toplam ? dogru / toplam : 0;

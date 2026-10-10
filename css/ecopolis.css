@@ -387,7 +387,12 @@ details.cozum[open] summary::before { content: "▾ "; }
 .hedefler li::marker { color: var(--kirmizi); }
 .kesim { scroll-margin-top: 64px; }
 .kesim-son { display: flex; justify-content: flex-end; margin: 4px 0 8px; }
-.okundu-isaret { font-size: 0.88rem; color: var(--yesil); display: inline-flex; gap: 6px; align-items: center; }
+.okudum { display: inline-flex; gap: 8px; align-items: center; min-height: 36px; padding: 6px 14px 6px 10px; border: 1px solid var(--damar-koyu); background: var(--kart); border-radius: 3px; cursor: pointer; font: 500 0.92rem var(--f-arayuz); color: var(--murekkep-2); }
+.okudum:hover { border-color: var(--yesil); color: var(--yesil); }
+.okudum .isaret-kutu { width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: 2px; display: inline-grid; place-items: center; }
+.okudum .isaret-kutu svg { width: 14px; height: 14px; stroke-width: 3; }
+.okudum[aria-pressed="true"] { color: var(--yesil); border-color: color-mix(in srgb, var(--yesil) 45%, var(--damar)); background: var(--yesil-soluk); }
+.okudum[aria-pressed="true"] .isaret-kutu { background: var(--yesil); border-color: var(--yesil); color: var(--kart); }
 .bolum-sonu { margin: 36px 0 12px; padding: 20px 16px; text-align: center; background: var(--zemin-2); border: 1px solid var(--damar); border-radius: 3px; }
 .bolum-sonu p { margin: 0 0 12px; font: italic 400 1.08rem var(--f-metin); color: var(--murekkep-2); }
 .yakinda-kutu { margin: 28px 0; padding: 22px 18px; border: 1px dashed var(--damar-koyu); border-radius: 3px; background: var(--zemin-2); }
